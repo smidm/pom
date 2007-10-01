@@ -50,10 +50,10 @@ int main(int argc, char **argv) {
     if(strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0) {
       cout << argv[0] << " [-h | --help | <configuration file>]" << endl
            << endl
-           << "  If a configuration file name is provided, the programs processes it" << endl
+           << "  If a configuration file name is provided, the program processes it" << endl
            << "  and prints information about the files it generates. Otherwise, it" << endl
-           << "  reads the standard input and does not produce any output unless an" << endl
-           << "  error occurs." << endl
+           << "  reads the standard input and does not produce any printout on the" <<
+           << "  standard output unless an error occurs." << endl
            << endl;
       exit(0);
     }
