@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
            << endl
            << "  If a configuration file name is provided, the program processes it" << endl
            << "  and prints information about the files it generates. Otherwise, it" << endl
-           << "  reads the standard input and does not produce any printout on the" <<
+           << "  reads the standard input and does not produce any printout on the" << endl
            << "  standard output unless an error occurs." << endl
            << endl;
       exit(0);
@@ -176,13 +176,14 @@ int main(int argc, char **argv) {
         else
           solver.solve(room, &prior, proba_views, &proba_presence, f, 0);
 
-        if(strcmp(result_view_format, "") != 0)
+        if(strcmp(result_view_format, "") != 0) {
           for(int c = 0; c < room->nb_cameras(); c++) {
             pomsprintf(buffer, buffer_size, result_view_format, c, f, 0);
             if(configuration_file)
               cout << "Saving " << buffer << endl;
             room->save_stochastic_view(buffer, c, (*proba_views)[c], &proba_presence);
           }
+        }
 
         if(strcmp(result_format, "") != 0) {
           pomsprintf(buffer, buffer_size, result_format, 0, f, 0);
@@ -302,7 +303,7 @@ int main(int argc, char **argv) {
     else if(strcmp(buffer, "") == 0 || buffer[0] == '#') { }
 
     else {
-      cerr << "Unknown token " << token << ".";
+      cerr << "Unknown token " << token << "." << endl;
       exit(1);
     }
   }

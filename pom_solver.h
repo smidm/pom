@@ -62,12 +62,14 @@ public:
   POMSolver(Room *room);
 
   // Uses the computation above for the various cameras and the prior
-  // to refresh proba_absence. Iterates as many times as specified.
+  // to refresh proba_absence. Iterates as many times as
+  // specified. The two last parameters are used only to save images
+  // showing the convergence
 
   void solve(Room *room,
              Vector<scalar_t> *prior,
              Vector<ProbaView *> *views,
-             Vector<scalar_t> *proba_presence,
+             Vector<scalar_t> *result_proba_presence,
              int nb_frame,
              char *convergence_file_format);
 };

@@ -96,7 +96,7 @@ void POMSolver::add_log_ratio(int camera,
 void POMSolver::solve(Room *room,
                       Vector<scalar_t> *prior,
                       Vector<ProbaView *> *views,
-                      Vector<scalar_t> *proba_presence,
+                      Vector<scalar_t> *result_proba_presence,
                       int nb_frame,
                       char *convergence_file_format) {
 
@@ -120,7 +120,8 @@ void POMSolver::solve(Room *room,
 
     scalar_t e = 0;
     for(int i = 0; i < room->nb_positions(); i++) {
-      scalar_t np = global_smoothing_coefficient * proba_absence[i] + (1 - global_smoothing_coefficient) / (1 + exp(log_prior_ratio[i] + sum[i]));
+      scalar_t np = global_smoothing_coefficient * proba_absence[i] +
+        (1 - global_smoothing_coefficient) / (1 + exp(log_prior_ratio[i] + sum[i]));
       if(abs(proba_absence[i] - np) > e) e = abs(proba_absence[i] - np);
       proba_absence[i] = np;
     }
@@ -129,15 +130,20 @@ void POMSolver::solve(Room *room,
 
     if(convergence_file_format) {
       char buffer[buffer_size];
-      for(int p = 0; p < room->nb_positions(); p++) (*proba_presence)[p] = 1 - proba_absence[p];
+      for(int p = 0; p < room->nb_positions(); p++) {
+        (*result_proba_presence)[p] = 1 - proba_absence[p];
+      }
+
       for(int c = 0; c < room->nb_cameras(); c++) {
         pomsprintf(buffer, buffer_size, convergence_file_format, c, nb_frame, it);
         cout << "Saving " << buffer << "\n"; cout.flush();
-        room->save_stochastic_view(buffer, c, (*views)[c], proba_presence);
+        room->save_stochastic_view(buffer, c, (*views)[c], result_proba_presence);
       }
     }
 
   }
 
-  for(int p = 0; p < room->nb_positions(); p++) (*proba_presence)[p] = 1 - proba_absence[p];
+  for(int p = 0; p < room->nb_positions(); p++) {
+    (*result_proba_presence)[p] = 1 - proba_absence[p];
+  }
 }
