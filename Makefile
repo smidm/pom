@@ -38,7 +38,7 @@ CXXFLAGS = -Wall $(OPTIMIZE_FLAG) $(PROFILE_FLAG)
 all: pom
 
 pom.tgz:
-	cd .. ; tar zcvf pom/pom.tgz pom/*.cc pom/*.h pom/Makefile pom/images/*.png pom/test.pom pom/*.txt
+	cd .. ; tar zcvf pom/pom.tgz pom/{*.{cc,h,txt,pom},Makefile} pom/images/*.png
 
 pom: pom.o global.o pom_solver.o proba_view.o normal_law.o rectangle.o room.o misc.o rgb_image.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
