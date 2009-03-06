@@ -117,12 +117,6 @@ public:
     return content[k];
   }
 
-  inline T norme() const {
-    T s = 0;
-    for(int i = 0; i<size; i++) s += content[i] * content[i];
-    return sqrt(s);
-  }
-
   inline void print(std::ostream &os) const {
     for(int i = 0; i < size; i++) os << content[i] << ((i < size - 1) ? " " : "\n");
   }
