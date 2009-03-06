@@ -118,7 +118,7 @@ REFERENCES
     François Fleuret, Jérôme Berclaz, Richard Lengagne and Pascal Fua,
     "Multi-Camera People Tracking with a Probabilistic Occupancy Map",
     IEEE Transactions on Pattern Analysis and Machine Intelligence
-    (TPAMI), 2007, to be published.
+    (TPAMI), 2008, 30(2), 267--282.
 
   This distributed version of the software is slightly slower than the
   one described in the article, for which many values such as the
@@ -130,8 +130,10 @@ LICENSE
 
   This source code is available under the terms of the version 3 of
   the GNU General Public License as published by the Free Software
-  Foundation. In short: If you distribute a software that uses POM,
-  you have to distribute it under GPL version 3, hence with the source
+  Foundation.
+
+  In short: If you distribute a software that uses POM, you have to
+  distribute it under GPL version 3, hence with the source
   code. Another option is to contact us to purchase a commercial
   license.
 
