@@ -89,6 +89,11 @@ CONFIGURATION FILE
     Sets the probability of absence ignored by the solver to speed up
     the convergence (use with care, it can produce false
     positive). Default is 1.0
+    
+  PROCESS <first frame> <num frames>
+  
+    Last keyword in the configuration file. Starts processing of <num frames>
+    from <first frame>.
 
   The file test.pom provided in the archive gives an example. Lines
   starting with "#" are ignored.
