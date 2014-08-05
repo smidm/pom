@@ -15,6 +15,7 @@
 // Written by Francois Fleuret                                                  //
 // (C) Ecole Polytechnique Federale de Lausanne                                 //
 // Contact <pom@epfl.ch> for comments & bug reports                             //
+// Modified by Matej Smid <smidm@cmp.felk.cvut.cz>								              //
 //////////////////////////////////////////////////////////////////////////////////
 
 #ifndef ROOM_H
@@ -29,19 +30,21 @@ using namespace std;
 class Room {
 
   int _nb_cameras, _nb_positions;
-  int _view_width, _view_height;
+
+  Vector<ProbaView *> _proba_views;
 
   Rectangle *_rectangles;
 
 public:
 
-  Room(int view_width, int view_height, int nb_cameras, int nb_positions);
+  Room(int nb_cameras, int nb_positions, Vector<ProbaView *> proba_views);
   ~Room();
 
   inline int nb_positions() const { return _nb_positions; }
   inline int nb_cameras() const { return _nb_cameras; }
-  inline int view_width() const { return _view_width; }
-  inline int view_height() const { return _view_height; }
+  inline int view_width(int n_camera) const { return _proba_views[n_camera]->get_width(); }
+  inline int view_height(int n_camera) const { return _proba_views[n_camera]->get_height(); }
+  inline ProbaView *get_view(int n_camera) const { return _proba_views[n_camera]; }
 
   inline Rectangle *avatar(int n_camera, int n_position) const {
     ASSERT(n_camera >= 0 && n_camera < _nb_cameras &&
@@ -50,8 +53,7 @@ public:
     return _rectangles + n_camera * _nb_positions + n_position;
   }
 
-  void save_stochastic_view(char *name, int ncam, const ProbaView *view,
-                            const Vector<scalar_t> *proba_presence) const;
+  void save_stochastic_view(char *name, int ncam, const Vector<scalar_t> *proba_presence) const;
 };
 
 #endif

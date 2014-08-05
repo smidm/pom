@@ -36,13 +36,22 @@ CONFIGURATION FILE
   ROOM <view width> <view height> <number of cameras> <number of locations>
 
     Defines the input image size, the number of cameras and the number
-    of locations in the area of interest.
+    of locations in the area of interest. In case of differently sized images 
+    for each camera set the <view width> and <view height> to -1 and
+    specify the camera view sizes by the CAMERA keyword.
+    
+  CAMERA <camera number> <view width> <view height>
+  
+    Defines the input image size for a camera. Used only in the case 
+    of differently sized images. The dimensions have to be defined for
+    all the cameras specified in the ROOM keyword <number of cameras> parameter.
+    <camera number> can be arbitrary nonegative number.
 
   RECTANGLE <camera number> <location number> notvisible|<xmin> <ymin> <xmax> <ymax>
 
     Defines the parameters of a certain rectangle, standing for an
     individual at a certain location viewed from a certain camera. All
-    non-specified rectangles are "not visible" by default.
+    non-specified rectangles are "not visible" by default.             
 
   INPUT_VIEW_FORMAT <input image filename format>
 

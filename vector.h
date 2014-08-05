@@ -71,6 +71,14 @@ public:
     os.write((char *) content, sizeof(T) * size);
   }
 
+  inline int find(T value) {
+    for(int i = 0; i < size; i++) {
+      if(content[i] == value)
+        return i;
+    }
+    return -1;
+  }
+
 //   inline void fill(const T &t) {
 //     T *s = content;
 //     for(int i = 0; i < size; i++) *(s++) = t;

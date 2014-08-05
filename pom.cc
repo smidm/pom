@@ -15,6 +15,7 @@
 // Written by Francois Fleuret                                                  //
 // (C) Ecole Polytechnique Federale de Lausanne                                 //
 // Contact <pom@epfl.ch> for comments & bug reports                             //
+// Modified by Matej Smid <smidm@cmp.felk.cvut.cz>							               	//
 //////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -73,9 +74,13 @@ int main(int argc, char **argv) {
   char buffer[buffer_size], token[buffer_size];
 
   int line_number = 0;
-  Vector<ProbaView *> *proba_views = 0;
+  Vector<ProbaView *> *proba_views = NULL;
+  int nb_positions = -1;
+  int nb_cameras = -1;
+  Vector<int> *camera_names = NULL;
 
-  Room *room = 0;
+
+  Room *room = NULL;
 
   while(!input_stream->eof()) {
 
@@ -87,8 +92,6 @@ int main(int argc, char **argv) {
 
     if(strcmp(token, "ROOM") == 0) {
       int view_width = -1, view_height = -1;
-      int nb_positions = -1;
-      int nb_cameras = -1;
 
       check_parameter(s, line_number, buffer);
       s = next_word(token, s, buffer_size);
@@ -106,15 +109,54 @@ int main(int argc, char **argv) {
       s = next_word(token, s, buffer_size);
       nb_positions = atoi(token);
 
-      if(room) {
+      if(proba_views != NULL) {
         cerr << "Room already defined, line" << line_number << "." << endl;
         exit(1);
       }
 
-      room = new Room(view_width, view_height, nb_cameras, nb_positions);
       proba_views = new Vector<ProbaView *>(nb_cameras);
-      for(int c = 0; c < proba_views->length(); c++)
-        (*proba_views)[c] = new ProbaView(view_width, view_height);
+      if((view_width == -1) || (view_height == -1)) {
+        // view dimension inconsistent
+        for(int c = 0; c < proba_views->length(); c++)
+          (*proba_views)[c] = NULL;
+      } else {        
+        // view dimensions consistent for the all cameras
+        for(int c = 0; c < proba_views->length(); c++)
+          (*proba_views)[c] = new ProbaView(view_width, view_height);
+      }
+      camera_names = new Vector<int>(nb_cameras);
+      for(int c = 0; c < nb_cameras; c++) {
+        (*camera_names)[c] = -1;
+      }
+    }
+
+    else if(strcmp(token, "CAMERA") == 0) {
+      int view_width = -1, view_height = -1;
+      int camera_name = -1;
+
+      check_parameter(s, line_number, buffer);
+      s = next_word(token, s, buffer_size);
+      camera_name = atoi(token);
+
+      check_parameter(s, line_number, buffer);
+      s = next_word(token, s, buffer_size);
+      view_width = atoi(token);
+
+      check_parameter(s, line_number, buffer);
+      s = next_word(token, s, buffer_size);
+      view_height = atoi(token);
+
+      if(proba_views == NULL) {
+        cerr << "Room not defined, you must specify room before CAMERA lines." << endl;
+        exit(1);
+      }
+      int free_idx = camera_names->find(-1);
+      if(free_idx == -1) {
+        cerr << "More CAMERA definitions as specified using the ROOM keyword <number of cameras> parameter." << endl;
+        exit(1);
+      }
+      (*camera_names)[free_idx] = camera_name;
+      (*proba_views)[free_idx] = new ProbaView(view_width, view_height);
     }
 
     else if(strcmp(token, "CONVERGENCE_VIEW_FORMAT") == 0) {
@@ -148,6 +190,11 @@ int main(int argc, char **argv) {
       check_parameter(s, line_number, buffer);
       s = next_word(token, s, buffer_size);
       nb_frames = atoi(token);
+      
+      if(proba_views == NULL) {
+        cerr << "Room not defined, you must specify room before PROCESS line." << endl;
+        exit(1);
+      }
 
       POMSolver solver(room);
 
@@ -166,22 +213,22 @@ int main(int argc, char **argv) {
           cout << "Processing frame " << f << endl;
 
         for(int c = 0; c < room->nb_cameras(); c++) {
-          pomsprintf(buffer, buffer_size, input_view_format, c, f, 0);
+          pomsprintf(buffer, buffer_size, input_view_format, (*camera_names)[c], f, 0);
           tmp.read_png(buffer);
           (*proba_views)[c]->from_image(&tmp);
         }
 
         if(strcmp(convergence_view_format, "") != 0)
-          solver.solve(room, &prior, proba_views, &proba_presence, f, convergence_view_format);
+          solver.solve(room, &prior, &proba_presence, f, convergence_view_format);
         else
-          solver.solve(room, &prior, proba_views, &proba_presence, f, 0);
+          solver.solve(room, &prior, &proba_presence, f, 0);
 
         if(strcmp(result_view_format, "") != 0) {
           for(int c = 0; c < room->nb_cameras(); c++) {
-            pomsprintf(buffer, buffer_size, result_view_format, c, f, 0);
+            pomsprintf(buffer, buffer_size, result_view_format, (*camera_names)[c], f, 0);
             if(configuration_file)
               cout << "Saving " << buffer << endl;
-            room->save_stochastic_view(buffer, c, (*proba_views)[c], &proba_presence);
+            room->save_stochastic_view(buffer, c, &proba_presence);
           }
         }
 
@@ -202,19 +249,28 @@ int main(int argc, char **argv) {
     }
 
     else if(strcmp(token, "RECTANGLE") == 0) {
-      int n_camera, n_position;
+      int camera_name, n_position;
 
-      if(!room) {
+      if(proba_views == NULL) {
         cerr << "You must define a room before adding rectangles, line" << line_number << "." << endl;
         exit(1);
       }
+      if(room == NULL) {
+        if (-1 != proba_views->find(NULL)) {
+          cerr << "You must define all CAMERA views dimensions before adding rectangles." << endl;
+          exit(1);
+        }
+        room = new Room(nb_cameras, nb_positions, *proba_views);
+      }
+
 
       check_parameter(s, line_number, buffer);
       s = next_word(token, s, buffer_size);
-      n_camera = atoi(token);
+      camera_name = atoi(token);
 
-      if(n_camera < 0 || n_camera >= room->nb_cameras()) {
-        cerr << "Out of range camera number line " << line_number << "." << endl;
+      int n_camera = camera_names->find(camera_name);
+      if(-1 == n_camera) {
+        cerr << "Camera " << camera_name << " not defined, line " << line_number << "." << endl;
         exit(1);
       }
 
@@ -222,7 +278,7 @@ int main(int argc, char **argv) {
       s = next_word(token, s, buffer_size);
       n_position = atoi(token);
 
-      if(n_position < 0 || n_camera >= room->nb_positions()) {
+      if(n_position < 0 || n_position >= room->nb_positions()) {
         cerr << "Out of range position number line " << line_number << "." << endl;
         exit(1);
       }
@@ -250,8 +306,8 @@ int main(int argc, char **argv) {
         s = next_word(token, s, buffer_size);
         current->ymax = atoi(token);
 
-        if(current->xmin < 0 || current->xmax >= room->view_width() ||
-           current->ymin < 0 || current->ymax >= room->view_height()) {
+        if(current->xmin < 0 || current->xmax >= room->view_width(n_camera) ||
+           current->ymin < 0 || current->ymax >= room->view_height(n_camera)) {
           cerr << "Rectangle out of bounds, line " << line_number << endl;
           exit(1);
         }

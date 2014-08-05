@@ -15,6 +15,7 @@
 // Written by Francois Fleuret                                                  //
 // (C) Ecole Polytechnique Federale de Lausanne                                 //
 // Contact <pom@epfl.ch> for comments & bug reports                             //
+// Modified by Matej Smid <smidm@cmp.felk.cvut.cz>                              //
 //////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -28,11 +29,27 @@ using namespace std;
 
 //////////////////////////////////////////////////////////////////////
 
-POMSolver::POMSolver(Room *room) : neg(room->view_width(), room->view_height()),
-                                   neg_view(room->view_width(), room->view_height()),
-                                   ii_neg(room->view_width(), room->view_height()),
-                                   ii_neg_view(room->view_width(), room->view_height()) {
+POMSolver::POMSolver(Room *room) : neg(room->nb_cameras()), neg_view(room->nb_cameras()),
+  								   ii_neg(room->nb_cameras()), ii_neg_view(room->nb_cameras()) {
+
+  for(int c = 0; c < room->nb_cameras(); c++) {
+    neg[c] = new ProbaView(room->view_width(c), room->view_height(c));
+    neg_view[c] = new ProbaView(room->view_width(c), room->view_height(c));
+    ii_neg[c] = new IntegralProbaView(room->view_width(c), room->view_height(c));
+    ii_neg_view[c] = new IntegralProbaView(room->view_width(c), room->view_height(c));
+  }
   global_difference.set(global_mu_image_density, global_sigma_image_density);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+POMSolver::~POMSolver() {
+  for(int c = 0; c < neg.length(); c++) {
+    delete neg[c];
+    delete neg_view[c];
+    delete ii_neg[c];
+    delete ii_neg_view[c];
+  }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -40,12 +57,12 @@ POMSolver::POMSolver(Room *room) : neg(room->view_width(), room->view_height()),
 void POMSolver::compute_average_images(int camera,
                                        Room *room,
                                        Vector<scalar_t> *proba_absence) {
-  neg.fill(1.0);
+  neg[camera]->fill(1.0);
 
   for(int n = 0; n < room->nb_positions(); n++) if((*proba_absence)[n] <= global_proba_ignored) {
     Rectangle *r = room->avatar(camera, n);
     if(r->visible)
-      neg.multiply_subarray(r->xmin, r->ymin, r->xmax + 1, r->ymax + 1, (*proba_absence)[n]);
+      neg[camera]->multiply_subarray(r->xmin, r->ymin, r->xmax + 1, r->ymax + 1, (*proba_absence)[n]);
   }
 }
 
@@ -53,7 +70,6 @@ void POMSolver::compute_average_images(int camera,
 
 void POMSolver::add_log_ratio(int camera,
                               Room *room,
-                              ProbaView *view,
                               Vector<scalar_t> *proba_absence,
                               Vector<scalar_t> *sum) {
 
@@ -61,11 +77,11 @@ void POMSolver::add_log_ratio(int camera,
 
   compute_average_images(camera, room, proba_absence);
 
-  double s = ii_neg.compute_sum(&neg);
-  double sv = ii_neg_view.compute_sum(&neg, view);
+  double s = ii_neg[camera]->compute_sum(neg[camera]);
+  double sv = ii_neg_view[camera]->compute_sum(neg[camera], room->get_view(camera));
 
   scalar_t noise_proba = 0.01; // 1% of the scene can remain unexplained
-  scalar_t average_surface = room->view_width() * room->view_height() * (1 + noise_proba) - s;
+  scalar_t average_surface = room->view_width(camera) * room->view_height(camera) * (1 + noise_proba) - s;
   scalar_t average_diff = average_surface + sv;
 
   // Cycles throw all positions and adds the log likelihood ratio to
@@ -76,11 +92,11 @@ void POMSolver::add_log_ratio(int camera,
     if(r->visible) {
       scalar_t lambda = 1 - 1/(*proba_absence)[i];
 
-      scalar_t integral_neg = ii_neg.integral(r->xmin, r->ymin, r->xmax + 1, r->ymax + 1);
+      scalar_t integral_neg = ii_neg[camera]->integral(r->xmin, r->ymin, r->xmax + 1, r->ymax + 1);
       scalar_t average_surface_givpre = average_surface +          integral_neg;
       scalar_t average_surface_givabs = average_surface + lambda * integral_neg;
 
-      scalar_t integral_neg_view = ii_neg_view.integral(r->xmin, r->ymin, r->xmax + 1, r->ymax + 1);
+      scalar_t integral_neg_view = ii_neg_view[camera]->integral(r->xmin, r->ymin, r->xmax + 1, r->ymax + 1);
       scalar_t average_diff_givpre = average_diff +           integral_neg - 2 * integral_neg_view;
       scalar_t average_diff_givabs = average_diff + lambda * (integral_neg - 2 * integral_neg_view);
 
@@ -95,7 +111,6 @@ void POMSolver::add_log_ratio(int camera,
 
 void POMSolver::solve(Room *room,
                       Vector<scalar_t> *prior,
-                      Vector<ProbaView *> *views,
                       Vector<scalar_t> *result_proba_presence,
                       int nb_frame,
                       char *convergence_file_format) {
@@ -116,7 +131,7 @@ void POMSolver::solve(Room *room,
 
     sum.clear();
     for(int c = 0; c < room->nb_cameras(); c++)
-      add_log_ratio(c, room, (*views)[c], &proba_absence, &sum);
+      add_log_ratio(c, room, &proba_absence, &sum);
 
     scalar_t e = 0;
     for(int i = 0; i < room->nb_positions(); i++) {
@@ -137,7 +152,7 @@ void POMSolver::solve(Room *room,
       for(int c = 0; c < room->nb_cameras(); c++) {
         pomsprintf(buffer, buffer_size, convergence_file_format, c, nb_frame, it);
         cout << "Saving " << buffer << "\n"; cout.flush();
-        room->save_stochastic_view(buffer, c, (*views)[c], result_proba_presence);
+        room->save_stochastic_view(buffer, c, result_proba_presence);
       }
     }
 
